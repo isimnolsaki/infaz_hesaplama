@@ -133,6 +133,21 @@
                     </div>
 
                     <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Hükmün Kesinleştiği Tarih:</label>
+                        <div class="col-md-8">
+                            <div class="date-input-group">
+                                <input type="number" id="kesinlesmeGun" class="form-control" placeholder="GG" min="1" max="31" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="kesinlesmeAy" class="form-control" placeholder="AA" min="1" max="12" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="kesinlesmeYil" class="form-control" placeholder="YYYY" min="1900" max="2100" required>
+                            </div>
+                            <small class="form-text text-muted">Format: GG/AA/YYYY</small>
+                            <small class="form-text text-danger">Bu tarih, suç tarihinden önce olamaz.</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
                         <label class="col-md-4 col-form-label">Ceza Türü:</label>
                         <div class="col-md-8">
                             <select id="cezaTuru" class="form-select" required>
