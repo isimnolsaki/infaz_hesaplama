@@ -10,6 +10,7 @@ Bu uygulama, Türk Ceza Kanunu ve İnfaz Kanunu'na göre hapis cezası süreleri
 - Tekerrür (mükerrir) durumlarını dikkate alan hesaplama
 - 0-6 yaş arası çocuğu olan kadın hükümlüler ve ağır hastalık durumlarında ek süre hesaplama
 - Yaş gruplarına göre infaz oranı hesaplama (12-15 yaş, 15-18 yaş)
+- **Hükmün kesinleştiği tarihe göre koşullu salıverilme ve denetimli serbestlik tarihlerini hesaplama**
 
 ## Kurulum
 
@@ -43,6 +44,8 @@ python app.py
 - **Koşullu Salıverilme Oranı (K)**: Suç türüne göre belirlenen oran (1/2, 2/3, 3/4 vb.)
 - **Koşullu Salıverilme Süresi**: T × K
 - **Denetimli Serbestlik Süresi (D)**: Suç türüne göre 1 veya 2 yıl, duruma göre +6 ay ek süre
+- **Koşullu Salıverilme Tarihi**: Hükmün Kesinleştiği Tarih + Koşullu Salıverilme Süresi
+- **Denetimli Serbestlik Tarihi**: Koşullu Salıverilme Tarihi - Denetimli Serbestlik Süresi
 
 ## Test Senaryoları
 
