@@ -1,1 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnfaz Hesaplama</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #f0f5ff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        label {
+            font-weight: 500;
+        }
+        .date-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .date-input-group input {
+            text-align: center;
+            max-width: 80px;
+        }
+        .date-separator {
+            margin: 0 2px;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #3a5db9;
+            border-color: #3a5db9;
+        }
+        .btn-primary:hover {
+            background-color: #304a94;
+            border-color: #304a94;
+        }
+        .result-section {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .result-section:last-child {
+            border-bottom: none;
+        }
+        .result-section h4 {
+            font-size: 1.2rem;
+            color: #3a5db9;
+            margin-bottom: 15px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <header class="text-center mb-4">
+            <h1 class="display-5 fw-bold">İnfaz Hesaplama Uygulaması</h1>
+            <p class="lead text-muted">Türk Ceza Kanunu ve İnfaz Kanunu'na göre hapis cezası süresi hesaplama</p>
+        </header>
 
+        <form id="infazForm">
+            <!-- Kişisel Bilgiler -->
+            <div class="card mb-4">
+                <div class="card-header">Kişisel Bilgiler</div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Doğum Tarihi:</label>
+                        <div class="col-md-8">
+                            <div class="date-input-group">
+                                <input type="number" id="dogumGun" class="form-control" placeholder="GG" min="1" max="31" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="dogumAy" class="form-control" placeholder="AA" min="1" max="12" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="dogumYil" class="form-control" placeholder="YYYY" min="1900" max="2100" required>
+                            </div>
+                            <small class="form-text text-muted">Format: GG/AA/YYYY</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Özel Durumlar:</label>
+                        <div class="col-md-8">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="cocukVar">
+                                <label class="form-check-label" for="cocukVar">0-6 yaş aralığında çocuğu olan kadın hükümlü</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="agirHastalik">
+                                <label class="form-check-label" for="agirHastalik">Ağır hastalık, engellilik veya ileri yaş durumu</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suç ve Ceza Bilgileri -->
+            <div class="card mb-4">
+                <div class="card-header">Suç ve Ceza Bilgileri</div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Suç Tarihi:</label>
+                        <div class="col-md-8">
+                            <div class="date-input-group">
+                                <input type="number" id="sucGun" class="form-control" placeholder="GG" min="1" max="31" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="sucAy" class="form-control" placeholder="AA" min="1" max="12" required>
+                                <span class="date-separator">/</span>
+                                <input type="number" id="sucYil" class="form-control" placeholder="YYYY" min="1900" max="2100" required>
+                            </div>
+                            <small class="form-text text-muted">Format: GG/AA/YYYY</small>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Ceza Türü:</label>
+                        <div class="col-md-8">
+                            <select id="cezaTuru" class="form-select" required>
+                                <option value="" selected disabled>Ceza türü seçiniz</option>
+                                <option value="Süreli Hapis">Süreli Hapis Cezası</option>
+                                <option value="Müebbet Hapis">Müebbet Hapis Cezası</option>
+                                <option value="Ağırlaştırılmış Müebbet">Ağırlaştırılmış Müebbet Hapis Cezası</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Suç Türü:</label>
+                        <div class="col-md-8">
+                            <select id="sucTuru" class="form-select" required>
+                                <option value="Diğer Suçlar" selected>Diğer Suçlar (Genel)</option>
+                                <option value="Kasten Öldürme">Kasten Öldürme (TCK 81, 82)</option>
+                                <option value="Cinsel Dokunulmazlığa Karşı Suçlar">Cinsel Dokunulmazlığa Karşı Suçlar (TCK 102-105)</option>
+                                <option value="Uyuşturucu Ticareti">Uyuşturucu Ticareti (TCK 188)</option>
+                                <option value="Terör Suçları">Terör Suçları (TMK kapsamında)</option>
+                                <option value="Organize Suçlar">Organize Suçlar</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="cezaSuresiDiv" class="row mb-3" style="display: none;">
+                        <label class="col-md-4 col-form-label">Ceza Süresi:</label>
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="number" id="cezaYil" class="form-control" placeholder="Yıl" min="0" max="50">
+                                <span class="input-group-text">Yıl</span>
+                                <input type="number" id="cezaAy" class="form-control" placeholder="Ay" min="0" max="11">
+                                <span class="input-group-text">Ay</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Tekerrür Durumu:</label>
+                        <div class="col-md-8">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="tekerrur">
+                                <label class="form-check-label" for="tekerrur">Tekerrür - Mükerrir (CGTİK 108. madde)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ikinciMukerrir">
+                                <label class="form-check-label" for="ikinciMukerrir">İkinci kez mükerrir (CGTİK 108. madde)</label>
+                            </div>
+                            <small class="form-text text-danger mt-2">
+                                <strong>Not:</strong> İkinci kez mükerrir olanlar koşullu salıverilme hükümlerinden yararlanamaz. 
+                                Cezanın tamamı infaz kurumunda çekilir.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mb-4">
+                <button type="submit" class="btn btn-primary btn-lg px-5">Hesapla</button>
+            </div>
+        </form>
+
+        <div id="sonuc"></div>
+        
+        <div class="footer">
+            <p>&copy; 2025 İnfaz Hesaplama Uygulaması | Bu uygulama bilgilendirme amaçlıdır.</p>
+            <p>Av. Muratcan Kocabay-Sandıkcı&Kocabay Hukuk Bürosu</p>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 
