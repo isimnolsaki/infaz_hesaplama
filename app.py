@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, date
+import calendar
 
 app = Flask(__name__)
 
@@ -186,8 +187,6 @@ def hesapla_kosullu_saliverilme(ceza_turu, suc_turu, yas, ceza_yil=None, ceza_ay
     
     if yil > 0 and ay > 0:
         infaz_suresi_metni = f"{yil} yıl {ay} ay"
-    elif yil > 0:
-        infaz_suresi_metni = f"{yil} yıl"
     else:
         infaz_suresi_metni = f"{ay} ay"
     
@@ -195,159 +194,189 @@ def hesapla_kosullu_saliverilme(ceza_turu, suc_turu, yas, ceza_yil=None, ceza_ay
 
 def hesapla_infaz(data):
     """Tüm infaz hesaplamalarını yapar"""
-    # Verileri al
-    dogum_tarihi = data.get('dogum_tarihi')
-    suc_tarihi = data.get('suc_tarihi')
-    ceza_turu = data.get('ceza_turu')
-    suc_turu = data.get('suc_turu')
-    ceza_yil = data.get('ceza_yil', 0)
-    ceza_ay = data.get('ceza_ay', 0)
-    cocuk_var = data.get('cocuk_var', False)
-    agir_hastalik = data.get('agir_hastalik', False)
-    tekerrur = data.get('tekerrur', False)
-    ikinci_mukerrir = data.get('ikinci_mukerrir', False)
-    
-    # Sonuç nesnesi
-    sonuc = {
-        'suc_tarihi': suc_tarihi,
-        'ceza_turu': ceza_turu,
-        'suc_turu': suc_turu,
-        'aciklamalar': []
-    }
-    
-    # Yaş hesapla
-    yas = hesapla_yas(dogum_tarihi, suc_tarihi)
-    sonuc['yas'] = yas
-    
-    # COVID-19 (7242 sayılı yasa) kontrolü
-    covid_oncesi = kontrol_suc_tarihi(suc_tarihi)
-    
-    if covid_oncesi:
-        sonuc['aciklamalar'].append(
-            "30/03/2020 tarihinden önce işlenen suçlar için 7242 sayılı yasa kapsamında ek denetimli serbestlik süreleri uygulanır."
-        )
-    
-    # İstisna suç kontrolü
-    istisna_suc = kontrol_istisna_suc(suc_turu)
-    
-    # Toplam ceza süresi (ay cinsinden)
-    if ceza_turu == "Süreli Hapis":
-        toplam_ceza_ay = (ceza_yil or 0) * 12 + (ceza_ay or 0)
+    try:
+        # Verileri al
+        dogum_tarihi = data.get('dogum_tarihi', data.get('dogumTarihi'))
+        suc_tarihi = data.get('suc_tarihi', data.get('sucTarihi'))
+        kesinlesme_tarihi = data.get('kesinlesme_tarihi', data.get('kesinlesmeTarihi'))
+        ceza_turu = data.get('ceza_turu', data.get('cezaTuru'))
+        suc_turu = data.get('suc_turu', data.get('sucTuru'))
+        ceza_yil = int(data.get('ceza_yil', data.get('cezaYil', 0)))
+        ceza_ay = int(data.get('ceza_ay', data.get('cezaAy', 0)))
+        cocuk_var = bool(data.get('cocuk_var', data.get('cocukVar', False)))
+        agir_hastalik = bool(data.get('agir_hastalik', data.get('agirHastalik', False)))
+        tekerrur = bool(data.get('tekerrur', data.get('tekerrur', False)))
+        ikinci_mukerrir = bool(data.get('ikinci_mukerrir', data.get('ikinciMukerrir', False)))
         
-        # Toplam ceza metni
-        yil = ceza_yil or 0
-        ay = ceza_ay or 0
+        # Tarih kontrolü
+        if not dogum_tarihi or not suc_tarihi:
+            return {"error": "Doğum tarihi ve suç tarihi belirtilmelidir."}
+            
+        # Sonuç nesnesi
+        sonuc = {
+            'suc_tarihi': suc_tarihi,
+            'kesinlesme_tarihi': kesinlesme_tarihi,
+            'ceza_turu': ceza_turu,
+            'suc_turu': suc_turu,
+            'aciklamalar': []
+        }
         
-        if yil > 0 and ay > 0:
-            sonuc['toplam_ceza_metni'] = f"{yil} yıl {ay} ay"
-        elif yil > 0:
-            sonuc['toplam_ceza_metni'] = f"{yil} yıl"
+        # Yaş hesapla
+        yas = hesapla_yas(dogum_tarihi, suc_tarihi)
+        sonuc['yas'] = yas
+        
+        # COVID-19 (7242 sayılı yasa) kontrolü
+        covid_oncesi = kontrol_suc_tarihi(suc_tarihi)
+        
+        if covid_oncesi:
+            sonuc['aciklamalar'].append(
+                "30/03/2020 tarihinden önce işlenen suçlar için 7242 sayılı yasa kapsamında ek denetimli serbestlik süreleri uygulanır."
+            )
+        
+        # İstisna suç kontrolü
+        istisna_suc = kontrol_istisna_suc(suc_turu)
+        
+        # Toplam ceza süresi (ay cinsinden)
+        if ceza_turu == "Süreli Hapis":
+            toplam_ceza_ay = (ceza_yil or 0) * 12 + (ceza_ay or 0)
+            
+            # Toplam ceza metni
+            yil = ceza_yil or 0
+            ay = ceza_ay or 0
+            
+            if yil > 0 and ay > 0:
+                sonuc['toplam_ceza_metni'] = f"{yil} yıl {ay} ay"
+            elif yil > 0:
+                sonuc['toplam_ceza_metni'] = f"{yil} yıl"
+            else:
+                sonuc['toplam_ceza_metni'] = f"{ay} ay"
         else:
-            sonuc['toplam_ceza_metni'] = f"{ay} ay"
-    else:
-        toplam_ceza_ay = None
-        sonuc['toplam_ceza_metni'] = ceza_turu
-    
-    # Özel durumlar için açıklamalar
-    if cocuk_var:
-        sonuc['aciklamalar'].append(
-            "0-6 yaş aralığında çocuğu olan kadın hükümlüler için denetimli serbestlik süresine 6 ay ilave edilir."
+            toplam_ceza_ay = None
+            sonuc['toplam_ceza_metni'] = ceza_turu
+        
+        # Özel durumlar için açıklamalar
+        if cocuk_var:
+            sonuc['aciklamalar'].append(
+                "0-6 yaş aralığında çocuğu olan kadın hükümlüler için denetimli serbestlik süresine 6 ay ilave edilir."
+            )
+        
+        if agir_hastalik:
+            sonuc['aciklamalar'].append(
+                "Ağır hastalık, engellilik veya ileri yaş durumunda denetimli serbestlik süresine 6 ay ilave edilir."
+            )
+        
+        if tekerrur:
+            sonuc['aciklamalar'].append(
+                "Tekerrür (mükerrir) durumunda infaz oranı artırılır."
+            )
+        
+        if ikinci_mukerrir:
+            sonuc['aciklamalar'].append(
+                "İkinci kez mükerrir olanlar koşullu salıverilme ve denetimli serbestlik hükümlerinden yararlanamaz. Cezanın tamamı infaz edilir."
+            )
+        
+        # Koşullu salıverilme hesabı
+        ks_ay, ks_suresi_metni, infaz_aciklamasi = hesapla_kosullu_saliverilme(
+            ceza_turu, suc_turu, yas, ceza_yil, ceza_ay, tekerrur, ikinci_mukerrir
         )
-    
-    if agir_hastalik:
-        sonuc['aciklamalar'].append(
-            "Ağır hastalık, engellilik veya ileri yaş durumunda denetimli serbestlik süresine 6 ay ilave edilir."
+        
+        sonuc['kosullu_saliverilme_suresi_metni'] = ks_suresi_metni
+        sonuc['infaz_orani'] = infaz_aciklamasi
+        
+        # Denetimli serbestlik hesabı
+        ds_tarih, ds_ay, ds_suresi_metni = hesapla_denetimli_serbestlik(
+            suc_tarihi, ceza_turu, suc_turu, cocuk_var, agir_hastalik, toplam_ceza_ay, ikinci_mukerrir
         )
-    
-    if tekerrur:
-        sonuc['aciklamalar'].append(
-            "Tekerrür (mükerrir) durumunda infaz oranı artırılır."
-        )
-    
-    if ikinci_mukerrir:
-        sonuc['aciklamalar'].append(
-            "İkinci kez mükerrir olanlar koşullu salıverilme ve denetimli serbestlik hükümlerinden yararlanamaz. Cezanın tamamı infaz edilir."
-        )
-    
-    # Koşullu salıverilme hesabı
-    ks_ay, ks_suresi_metni, infaz_aciklamasi = hesapla_kosullu_saliverilme(
-        ceza_turu, suc_turu, yas, ceza_yil, ceza_ay, tekerrur, ikinci_mukerrir
-    )
-    
-    sonuc['kosullu_saliverilme_suresi_metni'] = ks_suresi_metni
-    sonuc['infaz_orani'] = infaz_aciklamasi
-    
-    # Denetimli serbestlik hesabı
-    ds_tarih, ds_ay, ds_suresi_metni = hesapla_denetimli_serbestlik(
-        suc_tarihi, ceza_turu, suc_turu, cocuk_var, agir_hastalik, toplam_ceza_ay, ikinci_mukerrir
-    )
-    
-    sonuc['denetimli_serbestlik_suresi_metni'] = ds_suresi_metni
-    
-    # Tarih hesaplamaları: Günümüzü başlangıç olarak alıp, tahmini tarihler hesaplama
-    bugun = date.today()
-    
-    if ks_ay is not None:
-        # Tahmini koşullu salıverilme tarihi
+        
+        sonuc['denetimli_serbestlik_suresi_metni'] = ds_suresi_metni
+        
+        # Tarih hesaplamaları: Kesinleşme tarihini başlangıç olarak alıp, gerçek tarihler hesaplama
         try:
-            ks_tarih = bugun.replace(year=bugun.year + (ks_ay // 12))
-            kalan_ay = ks_ay % 12
-            
-            yeni_ay = bugun.month + kalan_ay
-            if yeni_ay > 12:
-                ks_tarih = ks_tarih.replace(year=ks_tarih.year + 1)
-                yeni_ay = yeni_ay - 12
-            
-            ks_tarih = ks_tarih.replace(month=yeni_ay)
-            
-            # Ayın son gününü aşma kontrolü
-            try:
-                ks_tarih = ks_tarih.replace(day=bugun.day)
-            except ValueError:
-                # 31 günlük aydan 30 günlük aya geçiş gibi durumlarda
-                ks_tarih = ks_tarih.replace(day=1)
-                # Bir sonraki ayın ilk gününden bir gün öncesi
-                if yeni_ay < 12:
-                    next_month = ks_tarih.replace(month=yeni_ay+1)
-                else:
-                    next_month = ks_tarih.replace(year=ks_tarih.year+1, month=1)
-                ks_tarih = next_month.replace(day=1) - datetime.timedelta(days=1)
-            
-            sonuc['kosullu_saliverilme_tarihi'] = ks_tarih.strftime('%d/%m/%Y')
-            
-            # Denetimli serbestlik tarihi hesabı (koşullu salıverilme tarihinden geriye)
-            if ds_ay > 0:
-                ds_tarih = ks_tarih
+            if kesinlesme_tarihi and ks_ay is not None:
+                # Kesinleşme tarihini datetime nesnesine çevir
+                kesinlesme_datetime = datetime.strptime(kesinlesme_tarihi, '%Y-%m-%d')
+                kesinlesme_date = kesinlesme_datetime.date()
                 
-                # Ay hesabı
-                yeni_ay = ds_tarih.month - (ds_ay % 12)
-                yil_azalt = 0
-                
-                if yeni_ay <= 0:
-                    yeni_ay = 12 + yeni_ay
-                    yil_azalt += 1
-                
-                ds_tarih = ds_tarih.replace(
-                    year=ds_tarih.year - (ds_ay // 12) - yil_azalt,
-                    month=yeni_ay
-                )
-                
-                # Ayın son gününü aşma kontrolü
+                # Koşullu salıverilme tarihi hesaplama
                 try:
-                    ds_tarih = ds_tarih.replace(day=ks_tarih.day)
-                except ValueError:
-                    # 31 günlük aydan 30 günlük aya geçiş gibi durumlarda
-                    if yeni_ay < 12:
-                        next_month = ds_tarih.replace(month=yeni_ay+1)
+                    # Ay hesabı
+                    toplam_ay = ks_ay
+                    yil_ekle = toplam_ay // 12
+                    ay_ekle = toplam_ay % 12
+                    
+                    # Yeni tarih hesabı
+                    yeni_yil = kesinlesme_date.year + yil_ekle
+                    yeni_ay = kesinlesme_date.month + ay_ekle
+                    
+                    # Ay taşması kontrolü
+                    if yeni_ay > 12:
+                        yeni_yil += 1
+                        yeni_ay -= 12
+                    
+                    # Gün kontrolü (örneğin 31 Ocak -> 28/29 Şubat)
+                    son_gun = calendar.monthrange(yeni_yil, yeni_ay)[1]
+                    if kesinlesme_date.day > son_gun:
+                        yeni_gun = son_gun
                     else:
-                        next_month = ds_tarih.replace(year=ds_tarih.year+1, month=1)
-                    ds_tarih = next_month.replace(day=1) - datetime.timedelta(days=1)
-                
-                sonuc['denetimli_serbestlik_tarihi'] = ds_tarih.strftime('%d/%m/%Y')
+                        yeni_gun = kesinlesme_date.day
+                    
+                    # Koşullu salıverilme tarihi
+                    from datetime import date
+                    ks_tarih = date(yeni_yil, yeni_ay, yeni_gun)
+                    sonuc['kosullu_saliverilme_tarihi'] = ks_tarih.strftime('%d/%m/%Y')
+                    
+                    # Denetimli serbestlik tarihi hesaplama
+                    if ds_ay > 0:
+                        # Denetimli serbestlik için ay hesabı
+                        ds_ay_geri = ds_ay
+                        ds_yil_geri = ds_ay_geri // 12
+                        ds_kalan_ay = ds_ay_geri % 12
+                        
+                        # Yıl hesabı
+                        ds_yeni_yil = ks_tarih.year - ds_yil_geri
+                        ds_yeni_ay = ks_tarih.month - ds_kalan_ay
+                        
+                        # Ay eksiye düşme kontrolü
+                        if ds_yeni_ay <= 0:
+                            ds_yeni_yil -= 1
+                            ds_yeni_ay += 12
+                        
+                        # Gün kontrolü
+                        ds_son_gun = calendar.monthrange(ds_yeni_yil, ds_yeni_ay)[1]
+                        if ks_tarih.day > ds_son_gun:
+                            ds_yeni_gun = ds_son_gun
+                        else:
+                            ds_yeni_gun = ks_tarih.day
+                        
+                        # Denetimli serbestlik tarihi
+                        ds_tarih = date(ds_yeni_yil, ds_yeni_ay, ds_yeni_gun)
+                        sonuc['denetimli_serbestlik_tarihi'] = ds_tarih.strftime('%d/%m/%Y')
+                    else:
+                        sonuc['denetimli_serbestlik_tarihi'] = "Denetimli serbestlik uygulanmaz"
+                except Exception as e:
+                    import traceback
+                    sonuc['tarih_hesaplama_hatasi'] = str(e)
+                    sonuc['hata_detay'] = traceback.format_exc()
+                    sonuc['kosullu_saliverilme_tarihi'] = "Tarih hesaplanamadı"
+                    sonuc['denetimli_serbestlik_tarihi'] = "Tarih hesaplanamadı"
+            else:
+                # Kesinleşme tarihi veya koşullu salıverilme süresi yoksa
+                sonuc['kosullu_saliverilme_tarihi'] = "Tarih belirlenemedi"
+                sonuc['denetimli_serbestlik_tarihi'] = "Tarih belirlenemedi"
         except Exception as e:
-            sonuc['aciklamalar'].append(f"Tarih hesaplaması yapılırken bir hata oluştu: {str(e)}")
-    
-    return sonuc
+            import traceback
+            sonuc['tarih_hesaplama_hatasi'] = str(e)
+            sonuc['hata_detay'] = traceback.format_exc()
+            sonuc['kosullu_saliverilme_tarihi'] = "Tarih hesaplanamadı"
+            sonuc['denetimli_serbestlik_tarihi'] = "Tarih hesaplanamadı"
+        
+        return sonuc
+    except Exception as e:
+        import traceback
+        return {
+            "error": f"Hesaplama sırasında bir hata oluştu: {str(e)}",
+            "hata_detay": traceback.format_exc()
+        }
 
 @app.route('/')
 def index():
@@ -355,8 +384,16 @@ def index():
 
 @app.route('/hesapla', methods=['POST'])
 def hesapla():
-    data = request.json
-    return jsonify(hesapla_infaz(data))
+    try:
+        data = request.json
+        sonuc = hesapla_infaz(data)
+        return jsonify(sonuc)
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": f"İstek işlenirken bir hata oluştu: {str(e)}",
+            "hata_detay": traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 
