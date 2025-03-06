@@ -12,9 +12,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ceza türü değişince ceza süresi alanını göster/gizle
     cezaTuruSelect.addEventListener('change', function() {
         if (this.value === 'Süreli Hapis') {
-            cezaSuresiDiv.style.display = 'block';
+            cezaSuresiDiv.style.display = 'flex';
+            document.getElementById('cezaYil').required = true;
+            document.getElementById('cezaAy').required = true;
         } else {
             cezaSuresiDiv.style.display = 'none';
+            document.getElementById('cezaYil').required = false;
+            document.getElementById('cezaAy').required = false;
+        }
+        // Parent window'a bilgi gönder
+        window.parent.postMessage('cezaTuruChanged', '*');
+    });
+
+    // Parent window'dan gelen mesajları dinle
+    window.addEventListener('message', function(event) {
+        if (event.data === 'checkCezaTuru') {
+            const cezaTuru = cezaTuruSelect.value;
+            if (cezaTuru === 'Süreli Hapis') {
+                cezaSuresiDiv.style.display = 'flex';
+                document.getElementById('cezaYil').required = true;
+                document.getElementById('cezaAy').required = true;
+            }
         }
     });
     
@@ -24,11 +42,11 @@ document.addEventListener('DOMContentLoaded', function() {
             tekerrurCheckbox.checked = true;
         }
     });
-    
+
     // Form submit işlemi
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-
+        
         // Tarih değerlerini al
         const dogumGun = document.getElementById('dogumGun').value;
         const dogumAy = document.getElementById('dogumAy').value;
@@ -73,11 +91,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Süreli hapis için ceza süresi kontrolü
-        const cezaYil = document.getElementById('cezaYil').value || "0";
-        const cezaAy = document.getElementById('cezaAy').value || "0";
-        if (cezaTuru === 'Süreli Hapis' && parseInt(cezaYil) === 0 && parseInt(cezaAy) === 0) {
-            alert('Lütfen ceza süresini girin.');
-            return;
+        let cezaYil = document.getElementById('cezaYil').value || "0";
+        let cezaAy = document.getElementById('cezaAy').value || "0";
+        
+        if (cezaTuru === 'Süreli Hapis') {
+            if (parseInt(cezaYil) === 0 && parseInt(cezaAy) === 0) {
+                alert('Lütfen ceza süresini girin.');
+                return;
+            }
+        } else {
+            cezaYil = "0";
+            cezaAy = "0";
         }
 
         // Form verilerini topla
@@ -104,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Sonuç alanını temizle ve yükleniyor göster
         sonucDiv.innerHTML = '<div class="text-center my-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Hesaplanıyor, lütfen bekleyin...</p></div>';
 
-        // API isteği gönder
+        // API'ye istek gönder
         fetch('/hesapla', {
             method: 'POST',
             headers: {
@@ -114,102 +138,71 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            // Hesapla butonunu aktif et
+            // Sonuçları göster
+            let sonucHTML = '';
+            
+            if (data.error) {
+                sonucHTML = `<div class="alert alert-danger">${data.error}</div>`;
+            } else {
+                sonucHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0">İnfaz Hesaplama Sonuçları</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="result-section">
+                                <h4>Genel Bilgiler</h4>
+                                <p><strong>Suç Tarihi:</strong> ${formatDate(data.suc_tarihi)}</p>
+                                <p><strong>Hükmün Kesinleştiği Tarih:</strong> ${formatDate(data.kesinlesme_tarihi)}</p>
+                                <p><strong>Ceza Türü:</strong> ${data.ceza_turu}</p>
+                                <p><strong>Suç Türü:</strong> ${data.suc_turu}</p>
+                                ${data.toplam_ceza_metni ? `<p><strong>Toplam Ceza:</strong> ${data.toplam_ceza_metni}</p>` : ''}
+                            </div>
+                            
+                            <div class="result-section">
+                                <h4>İnfaz Hesaplaması</h4>
+                                <p><strong>İnfaz Oranı:</strong> ${data.infaz_orani}</p>
+                                <p><strong>Koşullu Salıverilme Süresi:</strong> ${data.kosullu_saliverilme_suresi_metni}</p>
+                                <p><strong>Koşullu Salıverilme Tarihi:</strong> ${data.kosullu_saliverilme_tarihi}</p>
+                            </div>
+                            
+                            <div class="result-section">
+                                <h4>Denetimli Serbestlik</h4>
+                                <p><strong>Denetimli Serbestlik Süresi:</strong> ${data.denetimli_serbestlik_suresi_metni}</p>
+                                <p><strong>Denetimli Serbestlik Tarihi:</strong> ${data.denetimli_serbestlik_tarihi}</p>
+                            </div>
+                            
+                            ${data.aciklamalar && data.aciklamalar.length > 0 ? `
+                                <div class="result-section">
+                                    <h4>Önemli Notlar</h4>
+                                    <ul>
+                                        ${data.aciklamalar.map(aciklama => `<li>${aciklama}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            sonucDiv.innerHTML = sonucHTML;
+            
+            // Hesapla butonunu tekrar aktif et
             submitButton.disabled = false;
             submitButton.textContent = originalText;
             
-            // Sonuçları göster
-            displayResults(data);
+            // Sonuç bölümüne kaydır
+            sonucDiv.scrollIntoView({ behavior: 'smooth' });
         })
         .catch(error => {
-            // Hata durumunda
             console.error('Hata:', error);
+            sonucDiv.innerHTML = '<div class="alert alert-danger">Hesaplama sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.</div>';
             
-            // Hesapla butonunu aktif et
+            // Hesapla butonunu tekrar aktif et
             submitButton.disabled = false;
             submitButton.textContent = originalText;
-            
-            // Hata mesajını göster
-            sonucDiv.innerHTML = `
-                <div class="alert alert-danger" role="alert">
-                    <h4 class="alert-heading">Hesaplama hatası!</h4>
-                    <p>Hesaplama yapılırken bir hata oluştu. Lütfen daha sonra tekrar deneyiniz.</p>
-                    <hr>
-                    <p class="mb-0">Hata detayı: ${error.message || 'Bilinmeyen hata'}</p>
-                </div>
-            `;
         });
     });
-    
-    // Sonuçları göster
-    function displayResults(result) {
-        const sonucDiv = document.getElementById('sonuc');
-        
-        // Temel bilgileri içeren card oluştur
-        let html = `
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">İnfaz Hesaplama Sonucu</h3>
-                </div>
-                <div class="card-body">
-                    <div class="result-section">
-                        <h4>Temel Bilgiler</h4>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Suç Tarihi:</div>
-                            <div class="col-md-8">${formatDate(result.suc_tarihi)}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Hükmün Kesinleştiği Tarih:</div>
-                            <div class="col-md-8">${formatDate(result.kesinlesme_tarihi)}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Suç Türü:</div>
-                            <div class="col-md-8">${result.suc_turu}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Ceza Türü:</div>
-                            <div class="col-md-8">${result.ceza_turu}</div>
-                        </div>
-                        ${result.toplam_ceza_metni ? `
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Toplam Ceza:</div>
-                            <div class="col-md-8">${result.toplam_ceza_metni}</div>
-                        </div>` : ''}
-                    </div>
-
-                    <div class="result-section">
-                        <h4>İnfaz Hesaplaması</h4>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">İnfaz Oranı:</div>
-                            <div class="col-md-8">${result.infaz_orani}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Koşullu Salıverilme Süresi:</div>
-                            <div class="col-md-8">${result.kosullu_saliverilme_suresi_metni}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Koşullu Salıverilme Tarihi:</div>
-                            <div class="col-md-8">${result.kosullu_saliverilme_tarihi || "Hesaplanamadı"}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Denetimli Serbestlik Süresi:</div>
-                            <div class="col-md-8">${result.denetimli_serbestlik_suresi_metni}</div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 fw-bold">Denetimli Serbestlik Tarihi:</div>
-                            <div class="col-md-8">${result.denetimli_serbestlik_tarihi || "Hesaplanamadı"}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Sonuç bölümünü güncelle
-        sonucDiv.innerHTML = html;
-        
-        // Sonuç bölümüne kaydır
-        sonucDiv.scrollIntoView({ behavior: 'smooth' });
-    }
     
     // Yardımcı fonksiyonlar
     function validateDate(gun, ay, yil) {
