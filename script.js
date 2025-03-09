@@ -138,15 +138,17 @@ document.addEventListener('DOMContentLoaded', function() {
             aciklamalar: []
         };
 
-        // Toplam ceza süresi (ay cinsinden)
-        if (data.ceza_turu === "Süreli Hapis") {
-            const toplamAy = (data.ceza_yil || 0) * 12 + (data.ceza_ay || 0);
-            sonuc.toplam_ceza_metni = `${data.ceza_yil} yıl ${data.ceza_ay} ay`;
-            sonuc.toplam_ay = toplamAy;
-        } else {
-            sonuc.toplam_ceza_metni = data.ceza_turu;
-        }
-
+       // Toplam ceza süresi (ay cinsinden)
+// Toplam ceza süresi (ay cinsinden)
+if (data.ceza_turu === "Süreli Hapis") {
+    const yil = parseInt(data.ceza_yil) || 0;
+    const ay = parseInt(data.ceza_ay) || 0;
+    const toplamAy = yil * 12 + ay;
+    sonuc.toplam_ceza_metni = `${yil} yıl ${ay} ay`;
+    sonuc.toplam_ay = toplamAy;
+} else {
+    sonuc.toplam_ceza_metni = data.ceza_turu;
+}
         // İnfaz oranı hesapla
         let infazOrani = 1/2; // Varsayılan oran
         let infazAciklamasi = "1/2 (Diğer suçlar)";
