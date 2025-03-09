@@ -6,17 +6,29 @@
     <title>İnfaz Hesaplama</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
-        .container { max-width: 900px; }
+        body { 
+            background-color: #f8f9fa; 
+            padding: 20px 0;
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto;
+        }
         .card { 
             border-radius: 10px; 
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
             margin-bottom: 20px; 
+            background-color: white;
         }
         .card-header {
             background-color: #f0f5ff;
             padding: 15px 20px;
             font-weight: 600;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        .card-body {
+            padding: 20px;
         }
         .date-input-group {
             display: flex;
@@ -30,6 +42,11 @@
         .btn-primary {
             background-color: #3a5db9;
             border-color: #3a5db9;
+            padding: 10px 30px;
+        }
+        .btn-primary:hover {
+            background-color: #2d4a9e;
+            border-color: #2d4a9e;
         }
         .footer {
             margin-top: 30px;
@@ -37,11 +54,25 @@
             color: #6c757d;
             font-size: 0.9rem;
             padding: 20px 0;
+            border-top: 1px solid #dee2e6;
+        }
+        .form-check {
+            margin-bottom: 8px;
+        }
+        .form-select, .form-control {
+            border-color: #ced4da;
+        }
+        .form-select:focus, .form-control:focus {
+            border-color: #3a5db9;
+            box-shadow: 0 0 0 0.25rem rgba(58, 93, 185, 0.25);
+        }
+        #sonuc .card {
+            margin-top: 30px;
         }
     </style>
 </head>
 <body>
-    <div class="container py-4">
+    <div class="container">
         <header class="text-center mb-4">
             <h1 class="display-5 fw-bold">İnfaz Hesaplama</h1>
             <p class="lead text-muted">Türk Ceza Kanunu ve İnfaz Kanunu'na göre hesaplama</p>
@@ -52,7 +83,7 @@
                 <div class="card-header">Kişisel Bilgiler</div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <label class="col-md-4">Doğum Tarihi:</label>
+                        <label class="col-md-4 col-form-label">Doğum Tarihi:</label>
                         <div class="col-md-8">
                             <div class="date-input-group">
                                 <input type="number" id="dogumGun" class="form-control" placeholder="GG" min="1" max="31" required>
@@ -65,7 +96,7 @@
                     </div>
 
                     <div class="row mb-3">
-                        <label class="col-md-4">Özel Durumlar:</label>
+                        <label class="col-md-4 col-form-label">Özel Durumlar:</label>
                         <div class="col-md-8">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="cocukVar">
@@ -84,7 +115,7 @@
                 <div class="card-header">Suç ve Ceza Bilgileri</div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <label class="col-md-4">Suç Tarihi:</label>
+                        <label class="col-md-4 col-form-label">Suç Tarihi:</label>
                         <div class="col-md-8">
                             <div class="date-input-group">
                                 <input type="number" id="sucGun" class="form-control" placeholder="GG" min="1" max="31" required>
@@ -97,7 +128,7 @@
                     </div>
 
                     <div class="row mb-3">
-                        <label class="col-md-4">Hükmün Kesinleştiği Tarih:</label>
+                        <label class="col-md-4 col-form-label">Hükmün Kesinleştiği Tarih:</label>
                         <div class="col-md-8">
                             <div class="date-input-group">
                                 <input type="number" id="kesinlesmeGun" class="form-control" placeholder="GG" min="1" max="31" required>
@@ -110,7 +141,7 @@
                     </div>
 
                     <div class="row mb-3">
-                        <label class="col-md-4">Ceza Türü:</label>
+                        <label class="col-md-4 col-form-label">Ceza Türü:</label>
                         <div class="col-md-8">
                             <select id="cezaTuru" class="form-select" required>
                                 <option value="" selected disabled>Seçiniz</option>
@@ -122,7 +153,60 @@
                     </div>
 
                     <div class="row mb-3">
-                        <label class="col-md-4">Suç Türü:</label>
+                        <label class="col-md-4 col-form-label">Suç Türü:</label>
                         <div class="col-md-8">
                             <select id="sucTuru" class="form-select" required>
-                                <option value="Diğer Suç
+                                <option value="Diğer Suçlar" selected>Diğer Suçlar</option>
+                                <option value="Kasten Öldürme">Kasten Öldürme (TCK 81, 82)</option>
+                                <option value="Cinsel Dokunulmazlığa Karşı Suçlar">Cinsel Suçlar (TCK 102-105)</option>
+                                <option value="Uyuşturucu Ticareti">Uyuşturucu (TCK 188)</option>
+                                <option value="Terör Suçları">Terör Suçları</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="cezaSuresiDiv" class="row mb-3" style="display: none;">
+                        <label class="col-md-4 col-form-label">Ceza Süresi:</label>
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="number" id="cezaYil" class="form-control" placeholder="Yıl" min="0" max="50">
+                                <span class="input-group-text">Yıl</span>
+                                <input type="number" id="cezaAy" class="form-control" placeholder="Ay" min="0" max="11">
+                                <span class="input-group-text">Ay</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <label class="col-md-4 col-form-label">Tekerrür:</label>
+                        <div class="col-md-8">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="tekerrur">
+                                <label class="form-check-label" for="tekerrur">Tekerrür durumu var</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ikinciMukerrir">
+                                <label class="form-check-label" for="ikinciMukerrir">İkinci kez mükerrir</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg">Hesapla</button>
+            </div>
+        </form>
+
+        <div id="sonuc" class="mt-4"></div>
+
+        <footer class="footer">
+            <p>Bu uygulama, 5275 sayılı Ceza ve Güvenlik Tedbirlerinin İnfazı Hakkında Kanun hükümlerine göre hazırlanmıştır.</p>
+            <p class="mb-0">Hesaplamalar tahmini olup, resmi kurumların yapacağı hesaplamalar esas alınmalıdır.</p>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
